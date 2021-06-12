@@ -26,9 +26,11 @@ namespace RR7DBViewer
         public void Read()
         {
 			using var fs = new FileStream(_path, FileMode.Open);
-			using var bs = new BinaryStream(fs, ByteConverter.Big);
+			using var bs = new BinaryStream(fs);
 
-			bs.ReadByte();
+			// Endian byte
+			bs.ByteConverter = bs.ReadByte() == 1 ? ByteConverter.Big : ByteConverter.Little;
+
 			bs.ReadByte();
 			bs.ReadByte();
 			int columnCount = bs.ReadByte();
