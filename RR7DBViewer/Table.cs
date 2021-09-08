@@ -36,24 +36,24 @@ namespace RR7DBViewer
 			new("MenuBgm", 12, 0),
 		};
 
-		public string Name { get; set;  }
+		public string Name { get; set; }
 
 		private string _path;
 
 		public byte nMajorID { get; set; } // Table ID
 		public Table()
-        {
+		{
 
-        }
+		}
 
 		public Table(string path)
-        {
+		{
 			_path = path;
 			Name = Path.GetFileNameWithoutExtension(path);
-        }
+		}
 
-        public void Read()
-        {
+		public void Read()
+		{
 			using var fs = new FileStream(_path, FileMode.Open);
 			using var bs = new BinaryStream(fs);
 
@@ -136,20 +136,20 @@ namespace RR7DBViewer
 		}
 
 		public void Save(string outputDir, bool bigEndian)
-        {
+		{
 			OptimizedStringTable strTable = new OptimizedStringTable();
 			for (int i = 0; i < Columns.Count; i++)
 				strTable.AddString(Columns[i].Name);
 
 			for (int i = 0; i < Rows.Count; i++)
-            {
+			{
 				var row = Rows[i];
 				for (int j = 0; j < row.Cells.Count; j++)
-                {
+				{
 					if (row.Cells[j] is RRDBString str)
 						strTable.AddString(str.Value);
-                }
-            }
+				}
+			}
 
 			// 1/2. Calculate where the string table is and save it
 			using var fs = new FileStream(Path.Combine(outputDir, Name), FileMode.Create);
@@ -194,10 +194,10 @@ namespace RR7DBViewer
 
 			int currentRowTypeOffset = 0;
 			foreach (var col in Columns) // Save column offsets to row data
-            {
+			{
 				bs.WriteInt32(currentRowTypeOffset);
 				currentRowTypeOffset += col.GetTypeSize();
-            }
+			}
 
 			foreach (var col in Columns) // Save column name offsets
 			{
@@ -211,20 +211,20 @@ namespace RR7DBViewer
 
 			// Write row data
 			foreach (var row in Rows)
-            {
+			{
 				foreach (var cell in row.Cells)
-                {
+				{
 					if (cell is RRDBString str)
 						str.StringOffset = strTable.GetStringOffset(str.Value);
 					cell.Serialize(bs);
-                }
+				}
 
 				bs.AlignWithValue(0x77, 0x20);
 			}
-        }
+		}
 
 		public void ToCSV()
-        {
+		{
 			string csvPath = _path + ".csv";
 
 			using var sw = new StreamWriter(csvPath);

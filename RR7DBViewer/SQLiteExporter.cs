@@ -141,7 +141,7 @@ namespace RR7DBViewer
                         {
                             RRDBColumnInfo col = table.Columns[j];
 
-                            
+
                             switch (col.Type)
                             {
                                 case RRDBColumnType.Byte:
