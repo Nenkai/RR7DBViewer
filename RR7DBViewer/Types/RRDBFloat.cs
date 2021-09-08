@@ -4,6 +4,8 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
+using Syroot.BinaryData;
+
 namespace RR7DBViewer.Types
 {
 	public class RRDBFloat : IRRDBCell
@@ -13,6 +15,9 @@ namespace RR7DBViewer.Types
 		{
 			Value = val;
 		}
+
+		public void Serialize(BinaryStream bs)
+			=> bs.WriteSingle(Value);
 
 		public override string ToString()
 			=> Value.ToString();

@@ -12,6 +12,20 @@ namespace RR7DBViewer
 		public int RowNameOffset { get; set; }
 		public string Name { get; set; }
 		public RRDBColumnType Type { get; set; }
+
+		public int GetTypeSize()
+		{
+			return Type switch
+			{
+				RRDBColumnType.Byte => sizeof(byte),
+				RRDBColumnType.Float => sizeof(float),
+				RRDBColumnType.Short => sizeof(short),
+				RRDBColumnType.Integer => sizeof(int),
+				RRDBColumnType.String => sizeof(int),
+				_ => throw new Exception("Invalid column type"),
+			};
+		}
+
 		public override string ToString()
 		{
 			return Name;

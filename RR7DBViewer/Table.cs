@@ -8,19 +8,48 @@ using System.IO;
 using Syroot.BinaryData;
 
 using RR7DBViewer.Types;
+using PDTools.Utils; // Don't mind, borrowing it
 
 namespace RR7DBViewer
 {
-    public class Table
-    {
+	public class Table
+	{
 		public List<RRDBColumnInfo> Columns = new List<RRDBColumnInfo>();
 		public List<RRDBRowData> Rows = new List<RRDBRowData>();
 
+		private record TableConst(string TableName, byte nMajorID, byte Unk);
+
+		private static readonly List<TableConst> TableConsts = new()
+		{
+			new("Race", 1, 1),
+			new("Car", 2, 1),
+			new("Course", 3, 1),
+			new("Parts", 4, 0),
+			new("Custom", 5, 0),
+			new("Prize", 6, 1),
+			new("Country", 7, 0),
+			new("WCNews", 8, 1),
+			new("WCNewsTGS", 8, 1),
+			new("DjFlag", 9, 0),
+			new("Bgm", 10, 1),
+			new("CarViewer", 11, 1),
+			new("MenuBgm", 12, 0),
+		};
+
+		public string Name { get; set;  }
+
 		private string _path;
+
+		public byte nMajorID { get; set; } // Table ID
+		public Table()
+        {
+
+        }
 
 		public Table(string path)
         {
 			_path = path;
+			Name = Path.GetFileNameWithoutExtension(path);
         }
 
         public void Read()
@@ -31,7 +60,7 @@ namespace RR7DBViewer
 			// Endian byte
 			bs.ByteConverter = bs.ReadByte() == 1 ? ByteConverter.Big : ByteConverter.Little;
 
-			bs.ReadByte();
+			nMajorID = bs.Read1Byte();
 			bs.ReadByte();
 			int columnCount = bs.ReadByte();
 
@@ -106,6 +135,94 @@ namespace RR7DBViewer
 			}
 		}
 
+		public void Save(string outputDir, bool bigEndian)
+        {
+			OptimizedStringTable strTable = new OptimizedStringTable();
+			for (int i = 0; i < Columns.Count; i++)
+				strTable.AddString(Columns[i].Name);
+
+			for (int i = 0; i < Rows.Count; i++)
+            {
+				var row = Rows[i];
+				for (int j = 0; j < row.Cells.Count; j++)
+                {
+					if (row.Cells[j] is RRDBString str)
+						strTable.AddString(str.Value);
+                }
+            }
+
+			// 1/2. Calculate where the string table is and save it
+			using var fs = new FileStream(Path.Combine(outputDir, Name), FileMode.Create);
+			using var bs = new BinaryStream(fs, bigEndian ? ByteConverter.Big : ByteConverter.Little);
+
+			int rowLength = GetDataLengthAligned();
+
+			bs.WriteBoolean(bigEndian);
+
+			var tableConst = TableConsts.Find(e => e.TableName == Name);
+			if (tableConst is not null)
+			{
+				bs.WriteByte(tableConst.nMajorID);
+				bs.WriteByte(tableConst.Unk);
+			}
+			else
+			{
+				bs.WriteByte(0);
+				bs.WriteByte(0);
+			}
+
+			bs.WriteByte((byte)Columns.Count);
+			bs.WriteInt32(Rows.Count);
+			bs.Position += 4;
+			bs.Position += 4;
+
+			bs.Position += Columns.Count * 4; // Column Offsets
+			bs.Position += Columns.Count * 4; // Column Name Offsets
+			bs.Position += Columns.Count; // Data types
+			bs.AlignWithValue(0x77, 0x20);
+
+			int rowDataOffset = (int)bs.Position;
+			bs.Position += Rows.Count * rowLength;
+
+			int strDbOffset = (int)bs.Position;
+			strTable.SaveStream(bs);
+
+			// 2/2. Backtrack, actually write stuff
+			bs.Position = 0x08;
+			bs.WriteInt32(rowDataOffset);
+			bs.WriteInt32(rowLength);
+
+			int currentRowTypeOffset = 0;
+			foreach (var col in Columns) // Save column offsets to row data
+            {
+				bs.WriteInt32(currentRowTypeOffset);
+				currentRowTypeOffset += col.GetTypeSize();
+            }
+
+			foreach (var col in Columns) // Save column name offsets
+			{
+				int strOffset = strTable.GetStringOffset(col.Name);
+				bs.WriteInt32(strOffset);
+			}
+
+			foreach (var col in Columns) // Save column types
+				bs.WriteByte((byte)col.Type);
+			bs.AlignWithValue(0x77, 0x20);
+
+			// Write row data
+			foreach (var row in Rows)
+            {
+				foreach (var cell in row.Cells)
+                {
+					if (cell is RRDBString str)
+						str.StringOffset = strTable.GetStringOffset(str.Value);
+					cell.Serialize(bs);
+                }
+
+				bs.AlignWithValue(0x77, 0x20);
+			}
+        }
+
 		public void ToCSV()
         {
 			string csvPath = _path + ".csv";
@@ -116,5 +233,17 @@ namespace RR7DBViewer
 			foreach (var row in Rows)
 				sw.WriteLine(string.Join(',', row.Cells.Select(c => c.ToString())));
 		}
-    }
+
+		private int GetDataLengthAligned()
+		{
+			int length = 0;
+			foreach (var col in Columns)
+				length += col.GetTypeSize();
+
+			const int dataAlignment = 0x20;
+			length += (-length % dataAlignment + dataAlignment) % dataAlignment;
+
+			return length;
+		}
+	}
 }
