@@ -17,7 +17,7 @@ namespace RR7DBViewer
                 {
                     RRDatabaseManager db = RRDatabaseManager.FromSQLite(args[0]);
 
-                    Console.WriteLine("Export as Little-Endian? (Y/N)");
+                    Console.WriteLine("Import SQLite file as RRDB as Little-Endian? (Y/N) (PS3/XBOX360 games are Big-Endian, anything else is Little)");
 
                     bool bigEndian = true;
                     if (Console.ReadKey().Key == ConsoleKey.Y)
