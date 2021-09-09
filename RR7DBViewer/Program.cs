@@ -11,6 +11,25 @@ namespace RR7DBViewer
         {
             Console.WriteLine("RR7DBViewer by Nenkai#9075");
 
+            if (args.Length == 1)
+            {
+                if (args[0].EndsWith("db") && File.Exists(args[0]))
+                {
+                    RRDatabaseManager db = RRDatabaseManager.FromSQLite(args[0]);
+
+                    Console.WriteLine("Export as Little-Endian? (Y/N)");
+
+                    bool bigEndian = true;
+                    if (Console.ReadKey().Key == ConsoleKey.Y)
+                        bigEndian = false;
+
+                    string outputDir = Path.GetFileNameWithoutExtension(args[0]);
+                    Directory.CreateDirectory(outputDir);
+                    db.Save(outputDir, bigEndian);
+                    return;
+                }
+            }
+
             Parser.Default.ParseArguments<ExportVerbs, ImportVerbs>(args)
                 .WithParsed<ExportVerbs>(Export)
                 .WithParsed<ImportVerbs>(Import);
