@@ -14,9 +14,6 @@ namespace RR7DBViewer
             Parser.Default.ParseArguments<ExportVerbs, ImportVerbs>(args)
                 .WithParsed<ExportVerbs>(Export)
                 .WithParsed<ImportVerbs>(Import);
-
-
-            RRDatabaseManager exp = RRDatabaseManager.FromSQLite(@"C:\Users\nenkai\source\repos\RR7DBViewer\RR7DBViewer\bin\Debug\net5.0\aa.db");
         }
 
         public static void Export(ExportVerbs options)
@@ -51,7 +48,10 @@ namespace RR7DBViewer
                 SQLiteExporter exporter = new SQLiteExporter(db);
                 exporter.ExportToSQLite(options.OutputPath);
             }
-
+            else
+            {
+                Console.WriteLine("Invalid export method");
+            }
         }
 
         public static void Import(ImportVerbs options)
@@ -80,11 +80,11 @@ namespace RR7DBViewer
             [Option('o', "output", Required = true, HelpText = "Output file.")]
             public string OutputPath { get; set; }
 
-            [Option("export-as", HelpText = "How to export. Defaults to SQLite.")]
+            [Option("export-as", Default = "SQLite", HelpText = "How to export. Defaults to SQLite.")]
             public string ExportAs { get; set; }
         }
 
-        [Verb("import", HelpText = "Imports a database file and exports it to a RR database file.")]
+        [Verb("import", HelpText = "Imports a database file as SQLite and exports it to a RR database file.")]
         public class ImportVerbs
         {
             [Option('i', "input", Required = true, HelpText = "Input file or folder.")]
