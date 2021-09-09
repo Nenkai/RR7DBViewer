@@ -44,7 +44,8 @@ namespace RR7DBViewer
                 for (int i = 0; i < table.Columns.Count; i++)
                 {
                     RRDBColumnInfo col = table.Columns[i];
-                    sb.Append(col.Name);
+
+                    sb.Append(TranslateColumnNameForSQLite(col.Name));
                     sb.Append($" {TranslateColumnTypeToSQLiteType(col)}");
 
                     if (i < table.Columns.Count - 1)
@@ -67,7 +68,7 @@ namespace RR7DBViewer
                 for (int i = 0; i < table.Columns.Count; i++)
                 {
                     RRDBColumnInfo col = table.Columns[i];
-                    sb.Append(col.Name);
+                    sb.Append(TranslateColumnNameForSQLite(col.Name));
                     sb.Append($" varchar(64)");
 
                     if (i < table.Columns.Count - 1)
@@ -91,7 +92,7 @@ namespace RR7DBViewer
                 {
                     RRDBColumnInfo col = table.Columns[i];
 
-                    sb.Append(col.Name);
+                    sb.Append(TranslateColumnNameForSQLite(col.Name));
                     if (i < table.Columns.Count - 1)
                         sb.Append(", ");
                 }
@@ -122,7 +123,7 @@ namespace RR7DBViewer
                 for (int i = 0; i < table.Columns.Count; i++)
                 {
                     RRDBColumnInfo col = table.Columns[i];
-                    sb.Append(col.Name);
+                    sb.Append(TranslateColumnNameForSQLite(col.Name));
                     if (i < table.Columns.Count - 1)
                         sb.Append(", ");
                 }
@@ -168,6 +169,14 @@ namespace RR7DBViewer
                     transac.Commit();
                 }
             }
+        }
+
+        static string TranslateColumnNameForSQLite(string name)
+        {
+            if (int.TryParse(name, out _))
+                return $"'{name}'";
+            else
+                return name;
         }
 
         static string TranslateColumnTypeToSQLiteType(RRDBColumnInfo col)
